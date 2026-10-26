@@ -1,7 +1,8 @@
-# Student-only baselines：RuleArena Taxes 与 MTOB
+# Student-only baselines：RuleArena Taxes、MTOB 与 SWE-smith
 
-不带 advisor 时，各个 Claude 模型单独作答（"student alone"）在两个测试集上的分数。
+不带 advisor 时，各个 Claude 模型单独作答（"student alone"）在三个测试集上的分数。
 测试时间：2026-10-26。模型通过 Vertex AI（`global` 区域）调用。
+SWE-smith 的结果见[后半部分](#swe-smith)。
 
 ## 结果
 
@@ -90,3 +91,82 @@ done
 
 每条回答和分数会写到 `results/baselines/`。这个目录已加入 `.gitignore`，不提交到仓库，
 因为其中包含 MTOB 测试句及其参考翻译，而 MTOB 要求不要把测试数据公开到网上。
+
+## SWE-smith
+
+不带 advisor 时，mini-swe-agent 用各个 Claude 模型作为 agent，在 tenacity 仓库的 49 道测试题上自主修 bug。
+这一项同时统计**准确率**（解决率）和**效率**（agent 与环境交互的步数），论文更关注后者。
+
+### 结果
+
+每个模型跑 5 遍，表中是 5 遍的平均值，括号内是 95% bootstrap 置信区间。两种口径的区别见下方说明。
+
+| 模型 | 解决率，上游口径 (%) | 解决率，论文口径 (%) | 平均步数（全部题目） | 平均步数（已解决，上游口径） | 走满 40 步的轨迹 |
+| --- | --- | --- | --- | --- | --- |
+| `claude-haiku-4-5` | 82.0 (71.4–91.8) | 63.3 (49.0–77.6)\* | 26.7 (24.1–29.2) | 26.5 (23.7–29.2) | 39/245 (15.9%) |
+| `claude-sonnet-4-5` | 80.8 (69.4–91.8) | 51.0 (36.7–65.3) | 35.9 (34.6–37.1) | 35.9 (34.4–37.2) | 98/245 (40.0%) |
+| `claude-sonnet-4-6` | 84.5 (73.5–93.9) | 84.1 (73.5–93.9) | 14.9 (13.3–16.7) | 14.2 (12.8–15.6) | 4/245 (1.6%) |
+| `claude-opus-4-6` | 91.4 (83.7–98.0) | 91.4 (83.7–98.0) | 15.9 (14.7–17.3) | 15.8 (14.5–17.2) | 0/245 (0%) |
+
+\* Haiku 是在 eval 脚本改为保存每一遍记录之前跑的，只保留了最后一遍的逐题记录，所以它的论文口径解决率只来自第 5 遍（49 条轨迹）。
+
+每一遍的结果（上游口径，解决率 % / 平均步数）：
+
+| 模型 | 第 1 遍 | 第 2 遍 | 第 3 遍 | 第 4 遍 | 第 5 遍 |
+| --- | --- | --- | --- | --- | --- |
+| `claude-haiku-4-5` | 81.6 / 27.7 | 81.6 / 27.3 | 83.7 / 25.6 | 85.7 / 25.5 | 77.6 / 27.3 |
+| `claude-sonnet-4-5` | 75.5 / 35.8 | 75.5 / 36.1 | 83.7 / 36.0 | 85.7 / 35.6 | 83.7 / 35.9 |
+| `claude-sonnet-4-6` | 87.8 / 14.5 | 83.7 / 14.9 | 83.7 / 15.2 | 85.7 / 15.6 | 81.6 / 14.1 |
+| `claude-opus-4-6` | 85.7 / 15.7 | 91.8 / 16.2 | 95.9 / 15.6 | 91.8 / 16.4 | 91.8 / 15.8 |
+
+论文中的参考数字：Gemini 2.5 Flash 单独作答解决率 61.2%、平均 19.1 步；加上训练好的 advisor 后解决率不变（61.2%），步数降到 14.4。论文没有说明这两个数字用的是哪种口径，也没说明平均步数是对全部题目还是只对已解决的题目计算。
+
+### 两种口径
+
+- **上游口径**：`eval_swe_smith.py` 的统计方式。agent 走满 40 步后，仍拿它当时的代码改动去跑测试，测试通过就算解决。
+- **论文口径**：论文附录 B 的规定，走满 40 步的轨迹一律算未解决。计算方法是用每一遍的逐题记录（`*_run<i>.json`），只把 `resolved` 且 `total_steps < 40` 的轨迹算作解决。
+
+两种口径对 Sonnet 4.6 和 Opus 4.6 几乎没有影响，因为它们很少走满上限。但 Sonnet 4.5 有 40% 的轨迹走满上限，其中 73 条测试其实已经通过：它常常修好了代码却不提交，继续验证直到步数用完。所以它的解决率按两种口径分别是 80.8% 和 51.0%。Haiku 也有类似情况。
+
+### 设置
+
+- **数据**：上游提交的 `data/swe_smith/validation_jd__tenacity.json`（49 题）。上游同时提交了论文筛选后的训练集 `train_jd__tenacity.json`（56 题），本次没有用到。
+- **环境**：每道题在 SWE-smith 的 tenacity 镜像里运行，用 podman 代替 Docker，见 [README](../README.md#swe-smith)。
+- **Agent**：mini-swe-agent 1.14.4 的默认配置，最多 40 步，每个会话花费上限 $3。没有会话碰到花费上限。
+- **评测**：`advisor_models/swe_smith/eval_swe_smith.py`，`--num_samples 49 --max_workers 20 --num_runs 5`，与该脚本 docstring 中的示例一致。
+- **对 eval 脚本的唯一改动**：除了上游原本保存的最后一遍记录，额外把每一遍的逐题记录存为 `<session_mapping_file>_run<i>.json`，以便按论文口径重算。统计逻辑没有改动。
+
+### 数据质量
+
+每个模型共 245 条轨迹。下面这些情况都按未解决计分，但其中一部分 agent 可能其实修好了：
+
+| 模型 | 基础设施超时或报错 |
+| --- | --- |
+| `claude-haiku-4-5` | 1 次评测报错 |
+| `claude-sonnet-4-5` | 9 次（8 次从 agent server 取 patch 超时，1 次 podman 引擎超时） |
+| `claude-sonnet-4-6` | 3 次（从 agent server 取 patch 超时） |
+| `claude-opus-4-6` | 0 |
+
+Haiku 是单独跑的；另外三个模型是同时跑的，约 60 个会话压在同一个 agent server 和 podman 引擎上，超时都出现在这三个模型上。因此 Sonnet 4.5 和 Sonnet 4.6 的解决率可能分别被低估最多约 3.7 和 1.2 个百分点。要得到更干净的数字，应降低并发或逐个模型单独运行。
+
+### 复现
+
+先按 [README](../README.md#swe-smith) 装好 SWE-smith、拉取镜像并启动 agent 与 eval server，然后对每个模型运行：
+
+```bash
+AGENT_SERVER_URL=http://127.0.0.1:8081 EVAL_SERVER_URL=http://127.0.0.1:8082 PYTHONPATH=. \
+.venv/bin/python -m advisor_models.swe_smith.eval_swe_smith \
+    --model claude-sonnet-4-6 \
+    --data_file data/swe_smith/validation_jd__tenacity.json \
+    --num_samples 49 --max_workers 20 --num_runs 5 \
+    --session_mapping_file results/swe_smith/claude-sonnet-4-6_sessions.json
+```
+
+按论文口径重算解决率：
+
+```python
+import glob, json
+for f in sorted(glob.glob("results/swe_smith/claude-sonnet-4-6_sessions_run*.json")):
+    runs = list(json.load(open(f)).values())
+    print(f, sum(r["resolved"] and r["total_steps"] < 40 for r in runs) / len(runs))
+```

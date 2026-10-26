@@ -28,6 +28,7 @@ Note: Requires AGENT_SERVER_URL and EVAL_SERVER_URL environment variables.
 
 import argparse
 import json
+import os
 import sys
 from typing import Dict, List, Any
 from dataclasses import dataclass
@@ -558,6 +559,11 @@ def main():
         save_session_mapping(
             multi_results["run_results"][-1], args.session_mapping_file
         )
+        # Every run too, as <file>_run<i>.json: per-run step counts are needed to
+        # re-score trajectories that hit the step cap as unresolved (paper rule).
+        stem, ext = os.path.splitext(args.session_mapping_file)
+        for i, run_results in enumerate(multi_results["run_results"], 1):
+            save_session_mapping(run_results, f"{stem}_run{i}{ext}")
 
         # Print summary
         print_summary(
