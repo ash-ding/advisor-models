@@ -3,13 +3,16 @@
 # Training script for SWE-Smith domain
 
 # Set environment variables
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
+CKPT_ROOT="${CKPT_ROOT:-$HOME}"
 export RAY_RUNTIME_ENV_HOOK=ray._private.runtime_env.uv_runtime_env_hook.hook
-export PYTHONPATH="/advisor-models/SkyRL/skyrl-train:$PYTHONPATH"
-export DATA_DIR="/advisor-models/data/swe_smith"
+export PYTHONPATH="$REPO_ROOT:$REPO_ROOT/SkyRL/skyrl-train:$PYTHONPATH"
+export DATA_DIR="$REPO_ROOT/data/swe_smith"
 export NUM_GPUS=8
 export LOGGER="wandb"  # change to "console" to print to stdout
 export ADVISOR_MODELS_MODE="advisor"  # "advisor" or "baseline"
-export AGENT_MODEL="gemini/gemini-2.5-flash"  # Student model for advisor mode
+export AGENT_MODEL="claude-haiku-4-5"  # Student model for advisor mode (Claude on Vertex via utils/llm.py)
 
 # IMPORTANT: Update these URLs to point to your agent and eval servers
 export AGENT_SERVER_URL="http://YOUR_VM_IP:8081"  # CHANGE THIS to your VM's IP (agent server)
@@ -19,7 +22,7 @@ export EVAL_SERVER_URL="http://YOUR_VM_IP:8082"   # CHANGE THIS to your VM's IP 
 export REPO="jd__tenacity"
 
 # Run training
-/advisor-models/SkyRL/skyrl-train/.venv/bin/python -m advisor_models.swe_smith.main_swe_smith \
+$REPO_ROOT/SkyRL/skyrl-train/.venv/bin/python -m advisor_models.swe_smith.main_swe_smith \
     data.train_data="['$DATA_DIR/train_${REPO}.json']" \
     data.val_data="['$DATA_DIR/validation_${REPO}.json']" \
     trainer.algorithm.advantage_estimator="grpo" \
@@ -57,7 +60,7 @@ export REPO="jd__tenacity"
     trainer.project_name="advisor_models" \
     trainer.run_name="swe_smith_${REPO}" \
     trainer.resume_mode=null \
-    trainer.ckpt_path="$HOME/ckpts/swe_smith_${REPO}" \
+    trainer.ckpt_path="$CKPT_ROOT/ckpts/swe_smith_${REPO}" \
     generator.zero_reward_on_non_stop=true \
     trainer.hf_save_interval=20 \
-    trainer.export_path="$HOME/exports/swe_smith_${REPO}"
+    trainer.export_path="$CKPT_ROOT/exports/swe_smith_${REPO}"

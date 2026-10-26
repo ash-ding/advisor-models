@@ -34,6 +34,8 @@ from tqdm import tqdm
 import numpy as np
 import litellm
 from openai import OpenAI
+
+from utils.llm import ClaudeClient
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Add parent directory to path for imports
@@ -67,7 +69,7 @@ class ReviewsLengthScaledEvaluator:
         self.advisor_model = advisor_model
         self.advisor_api_base = advisor_api_base
         self.student_model = student_model
-        self.openai_client = OpenAI()
+        self.openai_client = ClaudeClient()
 
         # Initialize Anthropic client if using Claude models
         if "openrouter" in self.student_model.lower():
@@ -76,10 +78,7 @@ class ReviewsLengthScaledEvaluator:
                 api_key=os.getenv("OPENROUTER_API_KEY"),
             )
         elif "claude" in self.student_model.lower():
-            self.anthropic_client = OpenAI(
-                base_url="https://api.anthropic.com/v1",
-                api_key=os.getenv("ANTHROPIC_API_KEY"),
-            )
+            self.anthropic_client = ClaudeClient()
 
     def generate_advisor_feedback(self, prompt: List[Dict[str, str]]) -> str:
         """Generate advisor feedback by calling the configured OpenAI-compatible endpoint."""

@@ -8,17 +8,35 @@ Authors: *Parth Asawa\*, Alan Zhu\*, Abby O'Neill, Matei Zaharia, Alexandros G. 
 
 ## Setup
 
-Run ```uv sync``` to install local development dependencies. Activate your virtual environment with ```source .venv/bin/activate```.
+Run `scripts/setup_env.sh` to build both virtual environments: the root one
+(`uv sync`, used by dataset construction and evaluation) and the training one
+in `SkyRL/skyrl-train` (with vLLM, plus the packages the environments import).
 
-To setup the (separate) training virtual environment for all example environments, run the following commands:
+### Black-box models: Claude on Vertex AI
+
+All student / judge / summarizer calls go through `utils/llm.py`, which serves
+them with Claude on Vertex AI via litellm. Model names in the code and datasets
+are unchanged (e.g. `gpt-4o-mini`) and are mapped at call time:
+
+| Original name | Claude model (override with) |
+| --- | --- |
+| `*-mini`, `*-nano` (`gpt-4o-mini`, `gpt-4.1-mini`, `gpt-5-mini`) | `claude-haiku-4-5` (`CLAUDE_SMALL_MODEL`) |
+| other OpenAI names (`gpt-5`, `gpt-4.1`, `gpt-4o`, `o3`, ...) | `claude-sonnet-4-6` (`CLAUDE_LARGE_MODEL`) |
+| `claude-*`, `anthropic/claude-*` | same Claude model, via Vertex |
+
+Required environment:
 
 ```bash
-cd SkyRL/skyrl-train
-uv sync --extra vllm
-source .venv/bin/activate
+export ANTHROPIC_VERTEX_PROJECT_ID=<gcp-project>   # or VERTEX_PROJECT
+export CLOUD_ML_REGION=global                      # or VERTEX_LOCATION
+export GOOGLE_APPLICATION_CREDENTIALS=<service-account-key.json>
 ```
 
-Training script examples are provided in the ```advisor_models``` directory, along with templates for new environments. You will also need to have specified an ```OPENAI_API_KEY``` and ```WANDB_API_KEY``` in your environment.
+`CLAUDE_MAX_TOKENS` (default 8192) sets `max_tokens`. The advisor itself is
+still served locally by vLLM; calls with an `api_base` are not rerouted.
+No `OPENAI_API_KEY` is needed. Set `WANDB_API_KEY` for wandb logging, or pass
+`LOGGER=console`. Training scripts write checkpoints under `$CKPT_ROOT`
+(default `$HOME`).
 
 ## Advisor Models
 

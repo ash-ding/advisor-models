@@ -19,6 +19,9 @@ from pathlib import Path
 from typing import List, Dict, Any
 from datasets import Dataset
 import litellm
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # repo root, for utils
+from utils.llm import chat_completion  # noqa: E402
 from tqdm import tqdm
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -33,7 +36,7 @@ def get_initial_response(question: str, model: str = "gpt-4.1-mini") -> str:
     """Query *model* for an initial attempt using LiteLLM. Returns an empty string on fail."""
     try:
         litellm.drop_params = True
-        response = litellm.completion(
+        response = chat_completion(
             model=model,
             messages=[{"role": "user", "content": question}],
         )

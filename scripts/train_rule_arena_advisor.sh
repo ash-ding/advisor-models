@@ -3,14 +3,17 @@
 # Training script for rule arena domain
 
 # Set environment variables
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
+CKPT_ROOT="${CKPT_ROOT:-$HOME}"
 export RAY_RUNTIME_ENV_HOOK=ray._private.runtime_env.uv_runtime_env_hook.hook
-export PYTHONPATH="/advisor-models/SkyRL/skyrl-train:$PYTHONPATH"
-export DATA_DIR="/advisor-models/data/rule_arena"
+export PYTHONPATH="$REPO_ROOT:$REPO_ROOT/SkyRL/skyrl-train:$PYTHONPATH"
+export DATA_DIR="$REPO_ROOT/data/rule_arena"
 export NUM_GPUS=8
 export LOGGER="wandb"  # change to "console" to print to stdout
 
 # Run training
-/advisor-models/SkyRL/skyrl-train/.venv/bin/python -m advisor_models.rule_arena.main_rule_arena \
+$REPO_ROOT/SkyRL/skyrl-train/.venv/bin/python -m advisor_models.rule_arena.main_rule_arena \
   data.train_data="['$DATA_DIR/train_gpt-4.1-mini_0.parquet']" \
   data.val_data="['$DATA_DIR/validation_gpt-4.1-mini_0.parquet']" \
   trainer.algorithm.advantage_estimator="grpo" \
@@ -47,4 +50,4 @@ export LOGGER="wandb"  # change to "console" to print to stdout
   trainer.project_name="advisor_models" \
   trainer.run_name="rule_arena" \
   trainer.resume_mode=null \
-  trainer.ckpt_path="$HOME/ckpts/rule_arena"
+  trainer.ckpt_path="$CKPT_ROOT/ckpts/rule_arena"

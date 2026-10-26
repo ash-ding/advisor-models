@@ -3,14 +3,17 @@
 # Training script for math solutions domain
 
 # Set environment variables
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
+CKPT_ROOT="${CKPT_ROOT:-$HOME}"
 export RAY_RUNTIME_ENV_HOOK=ray._private.runtime_env.uv_runtime_env_hook.hook
-export PYTHONPATH="/advisor-models/SkyRL/skyrl-train:$PYTHONPATH"
-export DATA_DIR="/advisor-models/data/math_solutions"
+export PYTHONPATH="$REPO_ROOT:$REPO_ROOT/SkyRL/skyrl-train:$PYTHONPATH"
+export DATA_DIR="$REPO_ROOT/data/math_solutions"
 export NUM_GPUS=8
 export LOGGER="wandb"  # change to "console" to print to stdout
 
 # Run training
-/advisor-models/SkyRL/skyrl-train/.venv/bin/python -m advisor_models.math_solutions.main_math_solutions \
+$REPO_ROOT/SkyRL/skyrl-train/.venv/bin/python -m advisor_models.math_solutions.main_math_solutions \
   data.train_data="['$DATA_DIR/train.parquet']" \
   data.val_data="['$DATA_DIR/validation.parquet']" \
   trainer.algorithm.advantage_estimator="grpo" \
@@ -47,4 +50,4 @@ export LOGGER="wandb"  # change to "console" to print to stdout
   trainer.project_name="advisor_models" \
   trainer.run_name="math_solutions" \
   trainer.resume_mode=null \
-  trainer.ckpt_path="$HOME/ckpts/math_solutions"
+  trainer.ckpt_path="$CKPT_ROOT/ckpts/math_solutions"

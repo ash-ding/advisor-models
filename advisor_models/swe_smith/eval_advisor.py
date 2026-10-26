@@ -78,6 +78,7 @@ import subprocess
 from .config import compute_score, ADVISOR_TEMPLATE
 from .remote_agent_client import RemoteAgentClient
 from utils.vllm import start_vllm_server
+from utils.llm import chat_completion
 from utils.eval_utils import compute_multi_run_statistics, format_ci_string
 
 litellm.drop_params = True
@@ -239,8 +240,7 @@ class AdvisorDebugger:
         self.min_p = min_p
         self.truncate_student_thinking = truncate_student_thinking
         litellm.drop_params = True
-        if api_base:
-            litellm.api_base = api_base
+        self.advisor_api_base = api_base
 
         # vLLM server management
         self.vllm_process: Optional[subprocess.Popen] = None
@@ -271,7 +271,7 @@ class AdvisorDebugger:
             self.advisor_model = f"openai/{served_model_name}"
 
             # Configure litellm to use local vLLM server
-            litellm.api_base = "http://127.0.0.1:8000/v1"
+            self.advisor_api_base = "http://127.0.0.1:8000/v1"
             print(f"vLLM server started. Using model name: {self.advisor_model}")
         else:
             print(f"Using API model for advisor: {advisor_model}")
@@ -316,9 +316,10 @@ class AdvisorDebugger:
             if self.no_think:
                 extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
 
-            response = litellm.completion(
+            response = chat_completion(
                 model=self.advisor_model,
                 messages=advisor_messages,
+                api_base=self.advisor_api_base,
                 temperature=self.temperature,
                 top_p=self.top_p,
                 top_k=self.top_k,
@@ -445,9 +446,10 @@ class AdvisorDebugger:
                                 "chat_template_kwargs": {"enable_thinking": False}
                             }
 
-                        response = litellm.completion(
+                        response = chat_completion(
                             model=self.advisor_model,
                             messages=advisor_messages,
+                            api_base=self.advisor_api_base,
                             temperature=self.temperature,
                             top_p=self.top_p,
                             top_k=self.top_k,

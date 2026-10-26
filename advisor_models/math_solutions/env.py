@@ -7,7 +7,7 @@ Evaluates generated solutions for style alignment.
 from typing import Any, Dict, List, Tuple
 
 from omegaconf import DictConfig
-from openai import OpenAI
+from utils.llm import ClaudeClient
 
 from ..env_base import BaseAdvisorEnv
 from .config import (
@@ -71,7 +71,7 @@ class MathSolutionsEnv(BaseAdvisorEnv):
                 solution=self.final_response,
             )
 
-            client = OpenAI()
+            client = ClaudeClient()
             response = client.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[

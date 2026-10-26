@@ -41,6 +41,9 @@ from minisweagent.agents.default import DefaultAgent, AgentConfig, TerminatingEx
 from minisweagent.models.litellm_model import LitellmModel  # noqa: E402
 from minisweagent.environments.docker import DockerEnvironment  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from utils.llm import resolve_model, vertex_kwargs  # noqa: E402
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
@@ -174,7 +177,10 @@ class AgentSession:
                 cost_limit=self.cost_limit,
             )
 
-            model = LitellmModel(model_name=self.model_name)
+            model = LitellmModel(
+                model_name=resolve_model(self.model_name),
+                model_kwargs=vertex_kwargs(self.model_name),
+            )
             self.agent = DefaultAgent(
                 model,
                 self.docker_env,

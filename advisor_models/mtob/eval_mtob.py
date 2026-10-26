@@ -25,6 +25,8 @@ from typing import Dict, List, Any, Optional
 from tqdm import tqdm
 import numpy as np
 import litellm
+
+from utils.llm import chat_completion
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Add parent directory to path for imports
@@ -108,7 +110,7 @@ class MTOBEvaluator:
             if self.student_api_base is not None:
                 kwargs["api_base"] = self.student_api_base
 
-            response = litellm.completion(**kwargs)
+            response = chat_completion(**kwargs)
             return response.choices[0].message.content
         except Exception as e:
             print(f"Error getting student response: {e}")

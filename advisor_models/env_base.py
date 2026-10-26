@@ -7,7 +7,7 @@ Subclasses implement domain-specific logic for different tasks.
 from skyrl_gym.envs.base_text_env import BaseTextEnv, BaseTextEnvStepOutput
 from typing import Dict, Any, List, Tuple
 from omegaconf import DictConfig
-from litellm import completion
+from utils.llm import chat_completion
 import os
 
 # ENVIRONMENT VARIABLES
@@ -203,7 +203,7 @@ class BaseAdvisorEnv(BaseTextEnv):
             str: The parsed response from the student model.
         """
         try:
-            response = completion(
+            response = chat_completion(
                 model=self.student_model,
                 messages=messages,
                 temperature=temperature,

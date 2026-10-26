@@ -14,6 +14,7 @@ Example usage:
 from __future__ import annotations
 
 import argparse
+import sys
 import json
 import random
 from pathlib import Path
@@ -23,6 +24,9 @@ from tqdm import tqdm
 import pandas as pd
 from datasets import Dataset, load_dataset
 import litellm
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # repo root, for utils
+from utils.llm import chat_completion  # noqa: E402
 from math_verify import parse, verify
 
 from config import STUDENT_INITIAL_SYSTEM_PROMPT, ADVISOR_TEMPLATE
@@ -69,7 +73,7 @@ def get_initial_response(question: str, model: str = "gpt-4o-mini") -> str:
             {"role": "user", "content": question},
         ]
 
-        response = litellm.completion(
+        response = chat_completion(
             model=model,
             messages=messages,
             temperature=0.7,

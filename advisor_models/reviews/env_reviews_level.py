@@ -6,7 +6,7 @@ Provides ReviewsLevelEnv class for review writing with reading level preferences
 from typing import Any, Dict, List, Tuple
 
 from omegaconf import DictConfig
-from openai import OpenAI
+from utils.llm import ClaudeClient
 
 from ..env_base import BaseAdvisorEnv
 from .config import (
@@ -61,7 +61,7 @@ class ReviewsLevelEnv(BaseAdvisorEnv):
 
     def _compute_step(self) -> Tuple[float, bool, Dict[str, Any]]:
         try:
-            client = OpenAI()
+            client = ClaudeClient()
             response = client.chat.completions.create(
                 model="gpt-5-mini",
                 messages=[

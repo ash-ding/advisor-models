@@ -97,7 +97,7 @@ def summarize_agent_progress(
     Returns:
         Tuple of (summary_text, cost)
     """
-    import litellm
+    from utils.llm import chat_completion, completion_cost
 
     if not new_messages:
         return "", 0.0
@@ -129,7 +129,7 @@ Agent messages (steps {last_summarized_step + 1} to {current_step}):
 Provide a concise summary (max 100 words):"""
 
     try:
-        response = litellm.completion(
+        response = chat_completion(
             model=summarizer_model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
@@ -137,7 +137,7 @@ Provide a concise summary (max 100 words):"""
         )
 
         summary = response.choices[0].message.content
-        cost = litellm.completion_cost(completion_response=response)
+        cost = completion_cost(response)
 
         return summary, cost
 

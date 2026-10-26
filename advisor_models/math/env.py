@@ -7,7 +7,7 @@ Uses math_verify for answer extraction and verification.
 from skyrl_gym.envs.base_text_env import BaseTextEnv, BaseTextEnvStepOutput
 from typing import Dict, Any, List
 from omegaconf import DictConfig
-from openai import OpenAI
+from utils.llm import ClaudeClient
 from math_verify import parse, verify
 
 from .config import STUDENT_FINAL_SYSTEM_PROMPT
@@ -47,7 +47,7 @@ class MathEnv(BaseTextEnv):
     ) -> str:
         """Call the chat completion endpoint using OpenAI client."""
         try:
-            client = OpenAI()
+            client = ClaudeClient()
             response = client.chat.completions.create(
                 model=self.model,
                 messages=messages,

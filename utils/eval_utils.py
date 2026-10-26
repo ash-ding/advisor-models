@@ -8,7 +8,8 @@ Provides:
 import os
 import shutil
 import subprocess
-from typing import List, Optional
+import tempfile
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -258,3 +259,52 @@ def add_common_eval_args(parser) -> None:
         default="gpt-4o-mini",
         help="Model to use as student",
     )
+    parser.add_argument(
+        "--gcp",
+        action="store_true",
+        help="Download --model_name (a prefix in --bucket_name) from GCS before serving",
+    )
+    parser.add_argument(
+        "--bucket_name",
+        type=str,
+        default=None,
+        help="GCS bucket holding the advisor checkpoint (with --gcp)",
+    )
+
+
+def download_model_if_needed(
+    model_name: str, gcp: bool = False, bucket_name: Optional[str] = None
+) -> Tuple[str, Optional[str]]:
+    """Resolve the model to serve.
+
+    Without `gcp`, `model_name` is a local path or HF id and is returned as-is.
+    With `gcp`, every blob under the `model_name` prefix of `bucket_name` is
+    downloaded into a temporary directory, which the caller removes via
+    `cleanup_vllm_server`.
+
+    Returns:
+        (model_path, temp_dir or None)
+    """
+    if not gcp:
+        return model_name, None
+    if not bucket_name:
+        raise ValueError("--gcp requires --bucket_name")
+
+    from google.cloud import storage
+
+    temp_dir = tempfile.mkdtemp(prefix="advisor_model_")
+    bucket = storage.Client().bucket(bucket_name)
+    prefix = model_name.rstrip("/") + "/"
+    n = 0
+    for blob in bucket.list_blobs(prefix=prefix):
+        if blob.name.endswith("/"):
+            continue
+        dest = os.path.join(temp_dir, blob.name[len(prefix) :])
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        blob.download_to_filename(dest)
+        n += 1
+    if n == 0:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        raise FileNotFoundError(f"No files under gs://{bucket_name}/{prefix}")
+    print(f"Downloaded {n} files from gs://{bucket_name}/{prefix} to {temp_dir}")
+    return temp_dir, temp_dir
