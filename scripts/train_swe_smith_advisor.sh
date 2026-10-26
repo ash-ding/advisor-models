@@ -14,9 +14,9 @@ export LOGGER="wandb"  # change to "console" to print to stdout
 export ADVISOR_MODELS_MODE="advisor"  # "advisor" or "baseline"
 export AGENT_MODEL="claude-haiku-4-5"  # Student model for advisor mode (Claude on Vertex via utils/llm.py)
 
-# IMPORTANT: Update these URLs to point to your agent and eval servers
-export AGENT_SERVER_URL="http://YOUR_VM_IP:8081"  # CHANGE THIS to your VM's IP (agent server)
-export EVAL_SERVER_URL="http://YOUR_VM_IP:8082"   # CHANGE THIS to your VM's IP (eval server)
+# Agent and eval servers (default: started on this host by scripts/swe_smith/start_servers.sh)
+export AGENT_SERVER_URL="${AGENT_SERVER_URL:-http://127.0.0.1:8081}"
+export EVAL_SERVER_URL="${EVAL_SERVER_URL:-http://127.0.0.1:8082}"
 
 # Repository to train on (e.g., jd__tenacity)
 export REPO="jd__tenacity"

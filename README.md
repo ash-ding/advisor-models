@@ -38,6 +38,25 @@ No `OPENAI_API_KEY` is needed. Set `WANDB_API_KEY` for wandb logging, or pass
 `LOGGER=console`. Training scripts write checkpoints under `$CKPT_ROOT`
 (default `$HOME`).
 
+### SWE-smith
+
+SWE-smith needs an agent server and an eval server that run task containers.
+On a host with a podman engine instead of Docker (e.g. lumen):
+
+```bash
+scripts/swe_smith/setup.sh                    # SWE-smith harness into the root venv
+.venv/bin/python -m advisor_models.swe_smith.construct_dataset \
+    --output_dir data/swe_smith --repo jd__tenacity --train_size 100 --val_size 49
+scripts/swe_smith/pull_images.sh data/swe_smith/*.json
+scripts/swe_smith/start_servers.sh            # agent :8081, eval :8082 on 127.0.0.1
+```
+
+`pull_images.sh` also tags each image under the `swebench/` Docker Hub org:
+the dataset's `image_name` uses the old `jyangballin/` org, while current
+SWE-smith looks images up under `swebench/`. `scripts/swe_smith/eval_sanity.py`
+(gold patch scores 1, empty patch 0) and `scripts/swe_smith/smoke_env.py` (one
+sample end to end through `SWESmithEnv`) check the setup.
+
 ## Advisor Models
 
 ![image](assets/advisor_models.png)
